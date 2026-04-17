@@ -59,39 +59,25 @@ export async function POST(request: Request) {
 
   const numberedCorrectWorking = numberedSteps(correctWorking);
 
-  const prompt = `You are a supportive GCSE maths teacher marking a student's answer. The student is around 14 years old.
+  const prompt = `QUESTION: ${question}
 
-QUESTION:
-${question}
-
-CORRECT WORKING (numbered step by step):
+CORRECT WORKING:
 ${numberedCorrectWorking}
 
-CORRECT FINAL ANSWER:
-${correctAnswer}
+CORRECT ANSWER: ${correctAnswer}
 
-STUDENT'S WORKING:
-${studentWorking.trim() === "" ? "(the student left this blank)" : studentWorking}
+STUDENT WORKING:
+${studentWorking.trim() === "" ? "(blank)" : studentWorking}
 
-Your marking task:
-1. Compare the student's working against the correct working, step by step.
-2. Decide whether the student reached the correct final answer.
-3. If they used a different but mathematically valid method and reached the correct answer, mark it as CORRECT.
-4. If they got it wrong, identify the lowest step number from the correct working where their approach first diverged from a valid method or where they made their first error.
-5. Write your explanation and encouragement in warm, friendly language suitable for a 14-year-old GCSE student. Never be harsh or discouraging.
-
-Respond with valid JSON only — no markdown, no code fences, no text outside the JSON object:
-{
-  "isCorrect": <true or false>,
-  "wrongStep": <integer — the step number where they first went wrong, or null if isCorrect is true>,
-  "explanation": "<if wrong: a clear, specific, friendly explanation of exactly what mistake was made at that step and what the correct approach should have been. If blank: gently explain they need to show their working. Keep it under 60 words.>",
-  "encouragement": "<a short warm message of 1-2 sentences — celebrate if correct, gently motivate to try again if wrong>"
-}`;
+Respond with JSON only:
+{"isCorrect": true/false, "wrongStep": null or step number, "explanation": "under 50 words — friendly, specific", "encouragement": "under 20 words"}`;
 
   try {
     const message = await client.messages.create({
-      model: "claude-opus-4-6",
-      max_tokens: 512,
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 256,
+      system:
+        "You are a GCSE maths marking assistant. Compare the student working to the correct working. Identify the first wrong step if any. Respond in JSON only with fields isCorrect, wrongStep, explanation under 50 words, encouragement under 20 words. Keep responses short and focused — do not add unnecessary text.",
       messages: [{ role: "user", content: prompt }],
     });
 

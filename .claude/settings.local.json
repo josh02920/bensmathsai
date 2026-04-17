@@ -12,7 +12,26 @@
       "Bash(npm install:*)",
       "Bash(gh api:*)",
       "Bash(where gh:*)",
-      "Bash(gh --version)"
+      "Bash(gh --version)",
+      "Bash(cmd /c \"dir C:\\\\Users\\\\joshu\\\\bensmaths\\\\node_modules\\\\next\\\\dist 2>&1 | findstr /I dir\")",
+      "Bash(cmd /c \"if exist C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\data\\\\questions-algebra-fractions.ts \\(echo EXISTS\\) else \\(echo MISSING\\)\")",
+      "Bash(cmd /c \"for %f in \\(C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\data\\\\questions-*.ts\\) do @echo %f && findstr /c:\\\\\"id:\\\\\" \\\\\"%f\\\\\" | find /c \\\\\"id:\\\\\"\")",
+      "Bash(cmd /c \"findstr /c:\\\\\"id:\\\\\" src\\\\data\\\\questions-algebra-fractions.ts | find /c \\\\\"id:\\\\\"\")",
+      "Bash(cmd /c \"findstr /c:\\\\\"id:\\\\\" src\\\\data\\\\questions-pct-pyth.ts | find /c \\\\\"id:\\\\\"\")",
+      "Bash(cmd /c \"findstr /c:\\\\\"id:\\\\\" src\\\\data\\\\questions-quad-sim.ts | find /c \\\\\"id:\\\\\"\")",
+      "Bash(cmd /c \"findstr /c:\\\\\"id:\\\\\" src\\\\data\\\\questions-trig-ratio.ts | find /c \\\\\"id:\\\\\"\")",
+      "Bash(cmd /c \"findstr /c:\\\\\"id:\\\\\" src\\\\data\\\\questions-prob-stat.ts | find /c \\\\\"id:\\\\\"\")",
+      "Bash(cmd /c \"type questions-algebra-fractions.ts | find /c \\\\\"topic:\\\\\"\")",
+      "Bash(powershell -Command \"\\(Get-Content questions-algebra-fractions.ts | Select-String 'topic:'\\).Count; \\(Get-Content questions-pct-pyth.ts | Select-String 'topic:'\\).Count; \\(Get-Content questions-quad-sim.ts | Select-String 'topic:'\\).Count; \\(Get-Content questions-trig-ratio.ts | Select-String 'topic:'\\).Count; \\(Get-Content questions-prob-stat.ts | Select-String 'topic:'\\).Count\")",
+      "Bash(powershell -Command \"\\(Select-String -Path 'questions.ts' -Pattern 'topic:'\\).Count\")",
+      "Bash(cmd /c \"del questions-algebra-fractions.ts questions-pct-pyth.ts questions-quad-sim.ts questions-trig-ratio.ts questions-prob-stat.ts\")",
+      "Bash(powershell -Command \"Remove-Item 'C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\data\\\\questions-algebra-fractions.ts','C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\data\\\\questions-pct-pyth.ts','C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\data\\\\questions-prob-stat.ts','C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\data\\\\questions-quad-sim.ts','C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\data\\\\questions-trig-ratio.ts' -ErrorAction SilentlyContinue; Get-ChildItem 'C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\data\\\\'\")",
+      "Bash(cmd /c \"if exist C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\generate-lesson\\\\route.ts \\(echo EXISTS\\) else \\(echo MISSING\\)\")",
+      "Bash(cmd /c \"if exist C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\get-questions\\\\route.ts \\(echo EXISTS\\) else \\(echo MISSING\\)\")",
+      "Bash(cmd /c \"mkdir C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\generate-lesson 2>&1\")",
+      "Bash(cmd /c \"mkdir C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\get-questions 2>&1\")",
+      "Bash(cmd /c \"type nul > C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\generate-lesson\\\\route.ts\")",
+      "Bash(cmd /c \"type nul > C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\get-questions\\\\route.ts\")"
     ]
   }
 }

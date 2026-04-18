@@ -1,4 +1,4 @@
-﻿export interface Question {
+export interface Question {
   id: string;
   topic: string;
   grade: number;
@@ -1699,9 +1699,7 @@ export const questionBank: Question[] = [
     answer: "$x = \\frac{23}{5}$",
     working: "$\\frac{3x-1}{4} - \\frac{x+2}{3} = 1$\nMultiply through by $12$:\n$3(3x-1) - 4(x+2) = 12$\n$9x - 3 - 4x - 8 = 12$\n$5x - 11 = 12$\n$5x = 23$\n$x = \\frac{23}{5}$",
     commonMistake: "Expanding $-4(x+2)$ as $-4x + 2$ instead of $-4x - 8$.",
-  },,
-
-] = [
+  },
   // ============================================================
   // PERCENTAGES — Grade 1: Mental percentages (10%, 25%, 50%)
   // ============================================================
@@ -3392,9 +3390,7 @@ export const questionBank: Question[] = [
     answer: "$3\\sqrt{2} \\approx 4.24$ cm",
     working: "Each triangular face is equilateral with side $6$ cm\nSlant height of face $= \\frac{6\\sqrt{3}}{2} = 3\\sqrt{3}$\nDistance from centre of base to midpoint of edge $= 3$ cm\n$h^2 = (3\\sqrt{3})^2 - 3^2 = 27 - 9 = 18$\n$h = \\sqrt{18} = 3\\sqrt{2} \\approx 4.24$ cm",
     commonMistake: "Confusing slant height with vertical height.",
-  },,
-
-] = [
+  },
   // ========================================
   // QUADRATICS — Grade 1: Evaluating quadratic expressions
   // ========================================
@@ -5085,9 +5081,7 @@ export const questionBank: Question[] = [
     answer: "$x = 1, y = 2$",
     working: "Note that $x^2 - 4y^2 = (x+2y)(x-2y)$.\nSince $x + 2y = 5$:\n$5(x - 2y) = -3$\n$x - 2y = -\\frac{3}{5}$\nNow solve:\n$x + 2y = 5$ ... (1)\n$x - 2y = -\\frac{3}{5}$ ... (2)\nAdd: $2x = 5 - \\frac{3}{5} = \\frac{22}{5}$, $x = \\frac{11}{5}$.\n$2y = 5 - \\frac{11}{5} = \\frac{14}{5}$, $y = \\frac{7}{5}$.\nSo $x = \\frac{11}{5}$, $y = \\frac{7}{5}$.\nCheck: $\\frac{11}{5}+\\frac{14}{5}=5$. $\\frac{121}{25}-\\frac{196}{25}=-\\frac{75}{25}=-3$. Correct.",
     commonMistake: "Not recognising the difference of two squares factorisation $x^2 - 4y^2 = (x+2y)(x-2y)$.",
-  },,
-
-] = [
+  },
   // =============================================
   // TRIGONOMETRY — Grade 1: Labelling sides
   // =============================================
@@ -7287,9 +7281,7 @@ export const questionBank: Question[] = [
       "Density $= \\dfrac{\\text{mass}}{\\text{volume}}$\nMass $= 2.5 \\times 120 = 300$ g\nWhen cut in half: each piece has mass 150 g and volume 60 cm$^3$.\nDensity $= \\dfrac{150}{60} = 2.5$ g/cm$^3$ (density does not change).",
     commonMistake:
       "Thinking that cutting the block in half changes the density.",
-  },,
-
-] = [
+  },
   // ============================================================
   // PROBABILITY — Grade 1: Sample space; writing probability as a fraction
   // ============================================================

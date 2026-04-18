@@ -31,7 +31,13 @@
       "Bash(cmd /c \"mkdir C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\generate-lesson 2>&1\")",
       "Bash(cmd /c \"mkdir C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\get-questions 2>&1\")",
       "Bash(cmd /c \"type nul > C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\generate-lesson\\\\route.ts\")",
-      "Bash(cmd /c \"type nul > C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\get-questions\\\\route.ts\")"
+      "Bash(cmd /c \"type nul > C:\\\\Users\\\\joshu\\\\bensmaths\\\\src\\\\app\\\\api\\\\get-questions\\\\route.ts\")",
+      "Bash(powershell -Command ' *)",
+      "Bash(node -e ' *)",
+      "Bash(node --check \"C:/Users/joshu/AppData/Local/Temp/qtest.js\")",
+      "Bash(node --check \"C:/Users/joshu/AppData/Local/Temp/qtest2.js\")",
+      "Bash(node --check \"C:/Users/joshu/AppData/Local/Temp/qtest3.js\")",
+      "Bash(node \"C:/Users/joshu/AppData/Local/Temp/q100.js\")"
     ]
   }
 }

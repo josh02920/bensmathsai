@@ -37,7 +37,8 @@
       "Bash(node --check \"C:/Users/joshu/AppData/Local/Temp/qtest.js\")",
       "Bash(node --check \"C:/Users/joshu/AppData/Local/Temp/qtest2.js\")",
       "Bash(node --check \"C:/Users/joshu/AppData/Local/Temp/qtest3.js\")",
-      "Bash(node \"C:/Users/joshu/AppData/Local/Temp/q100.js\")"
+      "Bash(node \"C:/Users/joshu/AppData/Local/Temp/q100.js\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const c=fs.readFileSync\\('src/data/questions.ts','utf8'\\); const lines=c.split\\('\\\\n'\\); console.log\\('Total lines:', lines.length\\); console.log\\('Last 10 lines:'\\); lines.slice\\(-10\\).forEach\\(\\(l,i\\)=>console.log\\(lines.length-10+i+':',JSON.stringify\\(l\\)\\)\\);\")"
     ]
   }
 }

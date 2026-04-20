@@ -1,24 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0F1729;
+  --foreground: #ffffff;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --color-navy: #1e3a5f;
-  --color-teal: #0d9488;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background:  var(--background);
+  --color-foreground:  var(--foreground);
+  --font-sans:         var(--font-geist-sans);
+  --font-mono:         var(--font-geist-mono);
+  --color-navy:        #1A2744;
+  --color-navy-dark:   #0F1729;
+  --color-teal:        #0D9488;
 }
 
 body {
@@ -26,6 +20,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── Entrance ────────────────────────────────────────────────────────────────── */
 
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(8px); }
@@ -37,7 +33,62 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Skeleton ────────────────────────────────────────────────────────────────── */
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.2; }
+  50%       { opacity: 0.5; }
+}
+
+/* ── Confetti (JS-driven pieces — rise upward on personal best) ──────────────── */
+
+@keyframes confetti-rise {
+  0%   { transform: translateY(0)      rotate(0deg)   scale(1);   opacity: 1; }
+  70%  { opacity: 0.8; }
+  100% { transform: translateY(-72vh)  rotate(600deg) scale(0.4); opacity: 0; }
+}
+
+/* kept for any legacy usage */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-16px) rotate(0deg);   opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* ── Confetti (14 individual trajectories, CSS-only) ────────────────────────── */
+
+@keyframes cf-1  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(-140px,220px) rotate( 600deg) scale(0);opacity:0} }
+@keyframes cf-2  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate( 140px,220px) rotate(-600deg) scale(0);opacity:0} }
+@keyframes cf-3  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(-200px,180px) rotate( 480deg) scale(0);opacity:0} }
+@keyframes cf-4  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate( 200px,180px) rotate(-480deg) scale(0);opacity:0} }
+@keyframes cf-5  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(  -60px,260px) rotate( 720deg) scale(0);opacity:0} }
+@keyframes cf-6  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(   60px,260px) rotate(-720deg) scale(0);opacity:0} }
+@keyframes cf-7  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(-250px,140px) rotate( 540deg) scale(0);opacity:0} }
+@keyframes cf-8  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate( 250px,140px) rotate(-540deg) scale(0);opacity:0} }
+@keyframes cf-9  { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(  -80px,300px) rotate( 660deg) scale(0);opacity:0} }
+@keyframes cf-10 { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(   80px,300px) rotate(-660deg) scale(0);opacity:0} }
+@keyframes cf-11 { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(-180px,240px) rotate( 420deg) scale(0);opacity:0} }
+@keyframes cf-12 { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate( 180px,240px) rotate(-420deg) scale(0);opacity:0} }
+@keyframes cf-13 { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(  -30px,280px) rotate( 800deg) scale(0);opacity:0} }
+@keyframes cf-14 { 0%{transform:translate(0,0) rotate(0) scale(1);opacity:1} 100%{transform:translate(   30px,280px) rotate(-800deg) scale(0);opacity:0} }
+
+/* ── Score pop-in ────────────────────────────────────────────────────────────── */
+
+@keyframes score-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.1); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes pb-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(13,148,136,0.3); }
+  50%       { box-shadow: 0 0 40px rgba(13,148,136,0.7); }
+}
+
 @theme inline {
-  --animate-fade-in: fade-in 0.2s ease-out;
-  --animate-slide-up: slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-in:        fade-in        0.2s ease-out;
+  --animate-slide-up:       slide-up       0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-skeleton-pulse: skeleton-pulse 1.5s ease-in-out infinite;
+  --animate-score-pop:      score-pop      0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  --animate-pb-glow:        pb-glow        2s ease-in-out 3;
 }

@@ -248,7 +248,7 @@ function NavBar({ streak }: { streak: number }) {
     >
       <div className="max-w-6xl mx-auto px-6 w-full flex items-center justify-between">
         <Link href="/learn" className="text-2xl font-extrabold tracking-tight select-none">
-          <span className="text-white">Ben</span>
+          <span className="text-white">Ben&apos;s </span>
           <span style={{ color: "#0D9488", textShadow: "0 0 24px rgba(13,148,136,0.55)" }}>
             Maths
           </span>

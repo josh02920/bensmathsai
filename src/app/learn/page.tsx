@@ -99,6 +99,19 @@ const TOPIC_MIN_GRADE: Record<TopicName, number> = {
   "Indices and Surds":       7,
 };
 
+const SESS_KEY = "bm_session";
+
+interface SavedSession {
+  topic: TopicName;
+  grade: number;
+  mode: Mode;
+  stage: Stage;
+  cardIndex?: number;
+  qIndex?: number;
+  questions?: Question[];
+  completed?: CompletedQuestion[];
+}
+
 // ─── Streak helpers ───────────────────────────────────────────────────────────
 
 const SK  = "bm_streak";
@@ -128,6 +141,17 @@ function updateStreak(): { streak: number; isNewPB: boolean } {
   localStorage.setItem(LAK, today);
   localStorage.setItem(PBK, String(Math.max(next, best)));
   return { streak: next, isNewPB };
+}
+
+function loadSession(): SavedSession | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(SESS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SavedSession;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Shared components ────────────────────────────────────────────────────────
@@ -797,15 +821,19 @@ function LessonStage({
   topic,
   grade,
   onReady,
+  initialCardIndex,
+  onCardChange,
 }: {
   topic: TopicName;
   grade: number;
   onReady: () => void;
+  initialCardIndex?: number;
+  onCardChange?: (idx: number) => void;
 }) {
   const [cards, setCards] = useState<ConceptCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cardIndex, setCardIndex] = useState(0);
+  const [cardIndex, setCardIndex] = useState(initialCardIndex ?? 0);
   const [revealedSteps, setRevealedSteps] = useState(0);
   const [showWatchOut, setShowWatchOut] = useState(false);
 
@@ -814,7 +842,6 @@ function LessonStage({
     setLoading(true);
     setError(null);
     setCards([]);
-    setCardIndex(0);
     setRevealedSteps(0);
     setShowWatchOut(false);
     (async () => {
@@ -848,9 +875,11 @@ function LessonStage({
   }
 
   function nextCard() {
-    setCardIndex((i) => i + 1);
+    const newIdx = cardIndex + 1;
+    setCardIndex(newIdx);
     setRevealedSteps(0);
     setShowWatchOut(false);
+    onCardChange?.(newIdx);
   }
 
   if (loading) return <SkeletonCard />;
@@ -1028,9 +1057,11 @@ function LessonStage({
                 {cardIndex > 0 && (
                   <button
                     onClick={() => {
-                      setCardIndex((i) => i - 1);
+                      const newIdx = cardIndex - 1;
+                      setCardIndex(newIdx);
                       setRevealedSteps(0);
                       setShowWatchOut(false);
+                      onCardChange?.(newIdx);
                     }}
                     className="w-full rounded-2xl py-3 font-semibold text-sm transition-all duration-300"
                     style={{
@@ -1067,23 +1098,33 @@ function QuestionsStage({
   grade,
   count,
   onComplete,
+  initialQuestions,
+  initialQIndex,
+  initialCompleted,
+  onProgress,
 }: {
   topic: TopicName;
   grade: number;
   count: number;
   onComplete: (results: CompletedQuestion[]) => void;
+  initialQuestions?: Question[];
+  initialQIndex?: number;
+  initialCompleted?: CompletedQuestion[];
+  onProgress?: (questions: Question[], qIdx: number, completed: CompletedQuestion[]) => void;
 }) {
-  const [questions, setQuestions]       = useState<Question[]>([]);
-  const [loading, setLoading]           = useState(true);
+  const hasInitial = initialQuestions && initialQuestions.length > 0;
+  const [questions, setQuestions]       = useState<Question[]>(hasInitial ? initialQuestions : []);
+  const [loading, setLoading]           = useState(!hasInitial);
   const [error, setError]               = useState<string | null>(null);
-  const [qIndex, setQIndex]             = useState(0);
+  const [qIndex, setQIndex]             = useState(initialQIndex ?? 0);
   const [studentWorking, setWorking]    = useState("");
   const [marking, setMarking]           = useState(false);
   const [currentResult, setResult]      = useState<MarkResult | null>(null);
   const [markError, setMarkError]       = useState<string | null>(null);
-  const [completed, setCompleted]       = useState<CompletedQuestion[]>([]);
+  const [completed, setCompleted]       = useState<CompletedQuestion[]>(initialCompleted ?? []);
 
   useEffect(() => {
+    if (hasInitial) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -1100,6 +1141,7 @@ function QuestionsStage({
         if (cancelled) return;
         if (!res.ok) throw new Error(data.error ?? "Failed to load questions");
         setQuestions(data);
+        onProgress?.(data, 0, []);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load questions");
       } finally {
@@ -1107,6 +1149,7 @@ function QuestionsStage({
       }
     })();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [topic, grade, count]);
 
   const q              = questions[qIndex];
@@ -1147,11 +1190,13 @@ function QuestionsStage({
     if (isLastQuestion) {
       onComplete(next);
     } else {
+      const newQIdx = qIndex + 1;
       setCompleted(next);
-      setQIndex((i) => i + 1);
+      setQIndex(newQIdx);
       setWorking("");
       setResult(null);
       setMarkError(null);
+      onProgress?.(questions, newQIdx, next);
     }
   }
 
@@ -2055,8 +2100,33 @@ export default function LearnPage() {
   const [isNewPB, setIsNewPB]           = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Read streak from localStorage on mount
-  useEffect(() => { setStreak(readStreak()); }, []);
+  // Session persistence
+  const sessRef                         = useRef<Partial<SavedSession>>({});
+  const [savedSession, setSavedSession] = useState<SavedSession | null>(null);
+  const [resumeData, setResumeData]     = useState<SavedSession | null>(null);
+
+  const saveSession = useCallback((patch: Partial<SavedSession>) => {
+    sessRef.current = { ...sessRef.current, ...patch };
+    const s = sessRef.current;
+    if (s.topic && s.grade && s.mode && s.stage) {
+      localStorage.setItem(SESS_KEY, JSON.stringify(s));
+    }
+  }, []);
+
+  const clearSavedSession = useCallback(() => {
+    sessRef.current = {};
+    localStorage.removeItem(SESS_KEY);
+  }, []);
+
+  // Read streak + saved session from localStorage on mount
+  useEffect(() => {
+    setStreak(readStreak());
+    const saved = loadSession();
+    // Only offer resume for mid-session stages (not summary)
+    if (saved && saved.stage !== "summary") {
+      setSavedSession(saved);
+    }
+  }, []);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -2064,18 +2134,28 @@ export default function LearnPage() {
     setTopic(topic);
     setGrade(grade);
     setStage("mode");
-  }, []);
+    saveSession({ topic, grade, stage: "mode" });
+  }, [saveSession]);
 
   const handleModeSelected = useCallback((m: Mode) => {
     setMode(m);
-    if (m === "learn")  setStage("lesson");
-    if (m === "drill")  setStage("questions");
-    if (m === "upload") setStage("upload");
-  }, []);
+    const nextStage: Stage = m === "learn" ? "lesson" : m === "drill" ? "questions" : "upload";
+    setStage(nextStage);
+    saveSession({ mode: m, stage: nextStage });
+  }, [saveSession]);
 
   const handleLessonReady = useCallback(() => {
     setStage("questions");
-  }, []);
+    saveSession({ stage: "questions", cardIndex: undefined });
+  }, [saveSession]);
+
+  const handleCardChange = useCallback((idx: number) => {
+    saveSession({ cardIndex: idx });
+  }, [saveSession]);
+
+  const handleQProgress = useCallback((questions: Question[], qIdx: number, completed: CompletedQuestion[]) => {
+    saveSession({ questions, qIndex: qIdx, completed });
+  }, [saveSession]);
 
   const handleComplete = useCallback((res: CompletedQuestion[]) => {
     const { streak: s, isNewPB: pb } = updateStreak();
@@ -2090,6 +2170,7 @@ export default function LearnPage() {
   }, []);
 
   const handleUploadComplete = useCallback(() => {
+    clearSavedSession();
     const { streak: s, isNewPB: pb } = updateStreak();
     setStreak(s);
     setIsNewPB(pb);
@@ -2097,20 +2178,24 @@ export default function LearnPage() {
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 2000);
     }
-  }, []);
+  }, [clearSavedSession]);
 
   const handleTryAgain = useCallback(() => {
+    clearSavedSession();
+    setResumeData(null);
     setResults([]);
     setQKey((k) => k + 1);
     setStage("questions");
-  }, []);
+  }, [clearSavedSession]);
 
   const handleChooseNew = useCallback(() => {
+    clearSavedSession();
+    setResumeData(null);
     setTopic(null);
     setGrade(null);
     setResults([]);
     setStage("select");
-  }, []);
+  }, [clearSavedSession]);
 
   const handleViewLesson = useCallback(() => {
     setStage("lesson");
@@ -2121,12 +2206,30 @@ export default function LearnPage() {
   }, []);
 
   const handleTrySimilar = useCallback((topic: TopicName, grade: number) => {
+    clearSavedSession();
+    setResumeData(null);
     setTopic(topic);
     setGrade(grade);
     setMode("drill");
     setQKey((k) => k + 1);
     setStage("questions");
-  }, []);
+  }, [clearSavedSession]);
+
+  const handleResume = useCallback(() => {
+    if (!savedSession) return;
+    sessRef.current = { ...savedSession };
+    setTopic(savedSession.topic);
+    setGrade(savedSession.grade);
+    setMode(savedSession.mode);
+    setStage(savedSession.stage);
+    setResumeData(savedSession);
+    setSavedSession(null);
+  }, [savedSession]);
+
+  const handleStartFresh = useCallback(() => {
+    clearSavedSession();
+    setSavedSession(null);
+  }, [clearSavedSession]);
 
   // Question count based on mode
   const questionCount = mode === "drill" ? 10 : 5;
@@ -2136,6 +2239,61 @@ export default function LearnPage() {
       {showConfetti && <ConfettiBurst />}
       <NavBar streak={streak} />
       <div className="pt-16">
+
+        {/* Resume Session Banner */}
+        {savedSession && stage === "select" && (
+          <div
+            className="mx-auto max-w-3xl px-6 pt-6"
+          >
+            <div
+              className="rounded-2xl px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+              style={{ background: "rgba(13,148,136,0.15)", border: "1.5px solid rgba(13,148,136,0.4)" }}
+            >
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: "#0D9488" }}>
+                  Session saved
+                </p>
+                <p className="text-white font-semibold">
+                  Continue where you left off —{" "}
+                  <span style={{ color: "#5eead4" }}>{savedSession.topic}</span>{" "}
+                  at Grade {savedSession.grade}
+                </p>
+              </div>
+              <div className="flex gap-3 flex-shrink-0">
+                <button
+                  onClick={handleResume}
+                  className="rounded-xl px-5 py-2.5 font-bold text-sm text-white transition-all duration-200"
+                  style={{ background: "#0D9488", border: "none", cursor: "pointer" }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.85")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
+                >
+                  Continue
+                </button>
+                <button
+                  onClick={handleStartFresh}
+                  className="rounded-xl px-5 py-2.5 font-semibold text-sm transition-all duration-200"
+                  style={{
+                    background: "transparent",
+                    border: "1.5px solid rgba(255,255,255,0.2)",
+                    color: "rgba(255,255,255,0.7)",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.45)";
+                    (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.2)";
+                    (e.currentTarget as HTMLElement).style.color = "rgba(255,255,255,0.7)";
+                  }}
+                >
+                  Start Fresh
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {stage === "select" && (
           <SelectStage onStart={handleTopicGradeSelected} />
         )}
@@ -2155,6 +2313,8 @@ export default function LearnPage() {
             topic={selectedTopic}
             grade={selectedGrade}
             onReady={handleLessonReady}
+            initialCardIndex={resumeData?.stage === "lesson" ? resumeData.cardIndex : undefined}
+            onCardChange={handleCardChange}
           />
         )}
 
@@ -2165,6 +2325,10 @@ export default function LearnPage() {
             grade={selectedGrade}
             count={questionCount}
             onComplete={handleComplete}
+            initialQuestions={resumeData?.stage === "questions" ? resumeData.questions : undefined}
+            initialQIndex={resumeData?.stage === "questions" ? resumeData.qIndex : undefined}
+            initialCompleted={resumeData?.stage === "questions" ? resumeData.completed : undefined}
+            onProgress={handleQProgress}
           />
         )}
 

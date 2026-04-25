@@ -21,6 +21,17 @@ interface LessonResponse {
   cards: ConceptCard[];
 }
 
+/** Returns a grade-band-specific content instruction for Claude. */
+function gradeInstruction(grade: number): string {
+  if (grade <= 3) {
+    return `CONTENT LEVEL — FOUNDATION (Grade ${grade}): Use simple whole numbers only. Single-step problems. Basic everyday vocabulary with no complex notation. Explanations should be accessible to a student completely new to the topic. Avoid surds, negative indices, or algebraic manipulation beyond simple substitution.`;
+  }
+  if (grade <= 6) {
+    return `CONTENT LEVEL — INTERMEDIATE (Grade ${grade}): Use decimals and negative numbers freely. Two-to-three-step problems. Introduce formal mathematical language and standard GCSE notation. Students have some prior knowledge — build on fundamentals rather than re-teaching them from scratch.`;
+  }
+  return `CONTENT LEVEL — HIGHER (Grade ${grade}): Use complex notation and algebra fluently. Multi-step problems that require combining multiple techniques. Exam-style question wording with precise mathematical language. Include both non-calculator and calculator scenarios where relevant. Content should prepare students for top GCSE grades (7–9).`;
+}
+
 export async function POST(request: Request) {
   let body: LessonRequest;
 
@@ -42,7 +53,8 @@ export async function POST(request: Request) {
   const prompt = `You are creating an interactive GCSE maths lesson.
 
 Topic: ${topic}
-Grade: ${grade} (Grade 1-3 = foundation basics, 4-6 = mid level, 7-9 = higher)
+Grade: ${grade}
+${gradeInstruction(grade)}
 
 Generate exactly 3 concept cards that build progressively from most fundamental to most challenging for this topic at this grade.
 

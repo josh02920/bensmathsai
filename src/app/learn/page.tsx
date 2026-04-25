@@ -70,6 +70,35 @@ const TOPICS: { name: TopicName; symbol: string }[] = [
 
 const GRADES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
+/**
+ * Minimum grade required to unlock each topic.
+ * Grades 1–3 → 10 foundation topics (minGrade 1)
+ * Grades 4–6 → +9 intermediate topics  (minGrade 4)
+ * Grades 7–9 → +1 higher topic         (minGrade 7)
+ */
+const TOPIC_MIN_GRADE: Record<TopicName, number> = {
+  "Number":                  1,
+  "Fractions":               1,
+  "Ratio":                   1,
+  "Algebra":                 1,
+  "Percentages":             1,
+  "Probability":             1,
+  "Statistics":              1,
+  "Geometry and Measures":   1,
+  "Sequences":               1,
+  "Transformations":         1,
+  "Pythagoras":              4,
+  "Trigonometry":            4,
+  "Simultaneous Equations":  4,
+  "Quadratics":              4,
+  "Inequalities":            4,
+  "Vectors":                 4,
+  "Constructions and Loci":  4,
+  "Data and Graphs":         4,
+  "Circle Theorems":         4,
+  "Indices and Surds":       7,
+};
+
 // ─── Streak helpers ───────────────────────────────────────────────────────────
 
 const SK  = "bm_streak";
@@ -103,23 +132,25 @@ function updateStreak(): { streak: number; isNewPB: boolean } {
 
 // ─── Shared components ────────────────────────────────────────────────────────
 
-function LatexText({ text, className }: { text: string; className?: string }) {
-  const parts = text.split(/(\$[^$]+\$)/g);
-  return (
-    <span className={className}>
-      {parts.map((part, i) => {
-        if (part.startsWith("$") && part.endsWith("$") && part.length > 2) {
-          try {
-            const html = katex.renderToString(part.slice(1, -1), {
-              throwOnError: false, displayMode: false,
-            });
-            return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
-          } catch { return <span key={i}>{part}</span>; }
-        }
+/** Split a string on $…$ delimiters and render LaTeX portions with KaTeX. */
+function renderMaths(text: string): React.ReactNode {
+  return text.split(/(\$[^$]+\$)/g).map((part, i) => {
+    if (part.startsWith("$") && part.endsWith("$") && part.length > 2) {
+      try {
+        const html = katex.renderToString(part.slice(1, -1), {
+          throwOnError: false, displayMode: false,
+        });
+        return <span key={i} dangerouslySetInnerHTML={{ __html: html }} />;
+      } catch {
         return <span key={i}>{part}</span>;
-      })}
-    </span>
-  );
+      }
+    }
+    return part ? <span key={i}>{part}</span> : null;
+  });
+}
+
+function LatexText({ text, className }: { text: string; className?: string }) {
+  return <span className={className}>{renderMaths(text)}</span>;
 }
 
 function Spinner() {
@@ -176,6 +207,29 @@ function FlameIcon({ size = 20 }: { size?: number }) {
         fill="#FDE68A"
         opacity="0.7"
       />
+    </svg>
+  );
+}
+
+function PadlockIcon() {
+  return (
+    <svg width="18" height="20" viewBox="0 0 18 20" fill="none" aria-hidden>
+      {/* Shackle */}
+      <path
+        d="M5 9V6a4 4 0 018 0v3"
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Body */}
+      <rect x="2" y="9" width="14" height="10" rx="2.5"
+        fill="rgba(255,255,255,0.08)"
+        stroke="rgba(255,255,255,0.3)"
+        strokeWidth="1.2"
+      />
+      {/* Keyhole */}
+      <circle cx="9" cy="14.5" r="1.8" fill="rgba(255,255,255,0.3)" />
     </svg>
   );
 }
@@ -359,6 +413,17 @@ function SelectStage({ onStart }: { onStart: (t: TopicName, g: number) => void }
   const [hoveredTopic,  setHoveredTopic]  = useState<TopicName | null>(null);
   const canStart = selectedTopic !== null && selectedGrade !== null;
 
+  // Auto-deselect topic when the student picks a grade that locks it
+  useEffect(() => {
+    if (
+      selectedTopic !== null &&
+      selectedGrade !== null &&
+      selectedGrade < TOPIC_MIN_GRADE[selectedTopic]
+    ) {
+      setSelectedTopic(null);
+    }
+  }, [selectedGrade, selectedTopic]);
+
   return (
     <div className="max-w-5xl mx-auto px-6 py-16 animate-slide-up">
       <div className="mb-12 text-center">
@@ -373,36 +438,73 @@ function SelectStage({ onStart }: { onStart: (t: TopicName, g: number) => void }
       {/* Topic grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 mb-10">
         {TOPICS.map(({ name }) => {
-          const sel  = selectedTopic === name;
-          const hov  = hoveredTopic  === name;
+          const minGrade = TOPIC_MIN_GRADE[name];
+          const locked   = selectedGrade !== null && selectedGrade < minGrade;
+          const sel      = !locked && selectedTopic === name;
+          const hov      = !locked && hoveredTopic  === name;
+
           return (
             <button
               key={name}
-              onClick={() => setSelectedTopic(name)}
-              onMouseEnter={() => setHoveredTopic(name)}
+              onClick={() => !locked && setSelectedTopic(name)}
+              onMouseEnter={() => !locked && setHoveredTopic(name)}
               onMouseLeave={() => setHoveredTopic(null)}
+              disabled={locked}
               className="relative text-left overflow-hidden"
               style={{
                 minHeight: "90px",
-                padding: "14px 14px 14px 14px",
+                padding: "14px",
                 borderRadius: "16px",
                 border: sel
                   ? "1px solid #0D9488"
                   : hov
                   ? "1px solid rgba(13,148,136,0.8)"
+                  : locked
+                  ? "1px solid rgba(255,255,255,0.06)"
                   : "1px solid rgba(13,148,136,0.25)",
-                background: sel ? "rgba(13,148,136,0.18)" : "#1A2744",
-                cursor: "pointer",
+                background: sel
+                  ? "rgba(13,148,136,0.18)"
+                  : locked
+                  ? "rgba(255,255,255,0.02)"
+                  : "#1A2744",
+                cursor: locked ? "not-allowed" : "pointer",
+                opacity: locked ? 0.45 : 1,
                 transition: "all 0.3s ease",
                 boxShadow: sel ? "0 0 20px rgba(13,148,136,0.25)" : "none",
               }}
             >
-              {/* Shape icon — top-right */}
-              <span className="absolute top-2.5 right-2.5 select-none" style={{ opacity: sel ? 0.9 : 0.55 }}>
-                <TopicShapeIcon name={name} />
+              {/* Grade badge — top-left */}
+              <span
+                className="absolute top-2 left-2 font-bold leading-none"
+                style={{
+                  fontSize: "9px",
+                  padding: "2px 5px",
+                  borderRadius: "999px",
+                  background: locked
+                    ? "rgba(255,255,255,0.06)"
+                    : sel
+                    ? "rgba(13,148,136,0.25)"
+                    : "rgba(255,255,255,0.06)",
+                  color: locked
+                    ? "rgba(255,255,255,0.3)"
+                    : sel
+                    ? "#0D9488"
+                    : "rgba(255,255,255,0.3)",
+                  border: `1px solid ${locked ? "rgba(255,255,255,0.08)" : sel ? "rgba(13,148,136,0.3)" : "rgba(255,255,255,0.1)"}`,
+                }}
+              >
+                G{minGrade}+
               </span>
 
-              {/* Bottom-left teal gradient overlay on hover */}
+              {/* Top-right: padlock when locked, shape icon when available */}
+              <span
+                className="absolute top-2.5 right-2.5 select-none"
+                style={{ opacity: locked ? 0.6 : sel ? 0.9 : 0.55 }}
+              >
+                {locked ? <PadlockIcon /> : <TopicShapeIcon name={name} />}
+              </span>
+
+              {/* Hover / selected gradient overlay */}
               {(hov || sel) && (
                 <span
                   className="absolute inset-0 pointer-events-none rounded-2xl"
@@ -412,19 +514,33 @@ function SelectStage({ onStart }: { onStart: (t: TopicName, g: number) => void }
                 />
               )}
 
-              {/* Topic name — sits at bottom */}
+              {/* Topic name — bottom-left */}
               <span
                 className="absolute bottom-3 left-4 font-bold text-xs leading-tight"
-                style={{ color: sel ? "#0D9488" : "#F8FAFC" }}
+                style={{
+                  color: sel
+                    ? "#0D9488"
+                    : locked
+                    ? "rgba(255,255,255,0.3)"
+                    : "#F8FAFC",
+                }}
               >
                 {name}
               </span>
 
-              {sel && (
+              {/* Locked overlay: "Unlocks at Grade X" centred */}
+              {locked && (
                 <span
-                  className="absolute top-2.5 left-2.5 w-2 h-2 rounded-full"
-                  style={{ background: "#0D9488" }}
-                />
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ paddingBottom: "8px" }}
+                >
+                  <span
+                    className="text-center font-semibold leading-tight"
+                    style={{ fontSize: "9px", color: "rgba(255,255,255,0.35)" }}
+                  >
+                    Unlocks at<br />Grade {minGrade}
+                  </span>
+                </span>
               )}
             </button>
           );
@@ -793,7 +909,7 @@ function LessonStage({
             <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#0D9488" }}>
               Concept {cardIndex + 1}
             </p>
-            <h3 className="text-white font-extrabold text-2xl">{card.concept}</h3>
+            <h3 className="text-white font-extrabold text-2xl">{renderMaths(card.concept)}</h3>
           </div>
 
           <div className="px-8 py-7 space-y-7">
@@ -871,7 +987,7 @@ function LessonStage({
                   ⚠ Watch out
                 </p>
                 <p style={{ color: "rgba(245,158,11,0.85)", fontSize: "15px", lineHeight: "1.6" }}>
-                  {card.watchOut}
+                  {renderMaths(card.watchOut)}
                 </p>
               </div>
             )}
@@ -1230,6 +1346,12 @@ function QuestionsStage({
 
 // ─── Stage 3c — Upload ────────────────────────────────────────────────────────
 
+const PROGRESS_STAGES = [
+  "Reading your question",
+  "Working through the solution",
+  "Preparing your results",
+] as const;
+
 function UploadStage({
   onTrySimilar,
   onBack,
@@ -1239,12 +1361,16 @@ function UploadStage({
   onBack: () => void;
   onSessionComplete: () => void;
 }) {
-  const [loading, setLoading]       = useState(false);
-  const [result, setResult]         = useState<UploadResult | null>(null);
-  const [error, setError]           = useState<string | null>(null);
-  const [preview, setPreview]       = useState<string | null>(null);
-  const [dragOver, setDragOver]     = useState(false);
-  const fileInputRef                = useRef<HTMLInputElement>(null);
+  const [loading, setLoading]                     = useState(false);
+  const [progressStep, setProgressStep]           = useState(0);
+  const [result, setResult]                       = useState<UploadResult | null>(null);
+  const [error, setError]                         = useState<string | null>(null);
+  const [qualityError, setQualityError]           = useState<string | null>(null);
+  const [retryMessage, setRetryMessage]           = useState<string | null>(null);
+  const [questionConfirmed, setQuestionConfirmed] = useState<boolean | null>(null);
+  const [preview, setPreview]                     = useState<string | null>(null);
+  const [dragOver, setDragOver]                   = useState(false);
+  const fileInputRef                              = useRef<HTMLInputElement>(null);
 
   async function processFile(file: File) {
     const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -1255,49 +1381,92 @@ function UploadStage({
 
     setResult(null);
     setError(null);
+    setQualityError(null);
+    setRetryMessage(null);
+    setQuestionConfirmed(null);
+    setProgressStep(0);
     setLoading(true);
 
-    // Show preview
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string ?? null);
-    reader.readAsDataURL(file);
+    // Show preview immediately
+    const previewReader = new FileReader();
+    previewReader.onload = (e) => setPreview(e.target?.result as string ?? null);
+    previewReader.readAsDataURL(file);
+
+    // Advance the visual stage on a timer so the student feels progress
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    timers.push(setTimeout(() => setProgressStep(1), 2000));
+    timers.push(setTimeout(() => setProgressStep(2), 4000));
+    const clearTimers = () => timers.forEach(clearTimeout);
 
     try {
-      // Convert to pure base64 (strip data: prefix)
+      // Convert file to pure base64
       const base64 = await new Promise<string>((resolve, reject) => {
         const r = new FileReader();
-        r.onload  = () => {
-          const raw = r.result as string;
-          resolve(raw.split(",")[1]);
-        };
+        r.onload  = () => resolve((r.result as string).split(",")[1]);
         r.onerror = reject;
         r.readAsDataURL(file);
       });
 
-      const mediaType = (["image/jpeg","image/png","image/gif","image/webp","application/pdf"].includes(file.type)
-        ? file.type
-        : "image/jpeg") as string;
+      const mediaType = file.type;
 
-      const res  = await fetch("/api/solve-uploaded-question", {
+      // ── Quality check ────────────────────────────────────────────────────────
+      let canRead = true;
+      let qualityReason = "";
+      try {
+        const checkRes = await fetch("/api/check-image-readability", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base64, mediaType }),
+        });
+        const checkData = await checkRes.json();
+        canRead       = checkData.canRead ?? true;
+        qualityReason = checkData.reason  ?? "";
+      } catch {
+        canRead = true; // fail open — a transient error shouldn't block the student
+      }
+
+      if (!canRead) {
+        clearTimers();
+        setQualityError(qualityReason || "We could not read your question clearly.");
+        setLoading(false);
+        return;
+      }
+
+      // Ensure we're at least on step 1 before the solve call
+      setProgressStep((p) => Math.max(p, 1));
+
+      // ── Full solve ───────────────────────────────────────────────────────────
+      const solveRes = await fetch("/api/solve-uploaded-question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ base64, mediaType }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed to analyse image");
-      setResult(data as UploadResult);
+      const solveData = await solveRes.json();
+      if (!solveRes.ok) throw new Error(solveData.error ?? "Failed to analyse image");
+
+      // Lock to step 2 "Preparing your results" and hold briefly
+      clearTimers();
+      setProgressStep(2);
+      await new Promise((r) => setTimeout(r, 700));
+
+      setResult(solveData as UploadResult);
       onSessionComplete();
     } catch (err) {
+      clearTimers();
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
   }
 
-  function reset() {
+  function reset(hint?: string) {
     setResult(null);
     setPreview(null);
     setError(null);
+    setQualityError(null);
+    setQuestionConfirmed(null);
+    setProgressStep(0);
+    setRetryMessage(hint ?? null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -1313,6 +1482,7 @@ function UploadStage({
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-12 animate-slide-up">
+      {/* Back button */}
       <button
         onClick={onBack}
         className="text-sm mb-8 flex items-center gap-1.5 transition-colors duration-300"
@@ -1323,37 +1493,85 @@ function UploadStage({
         ← Back
       </button>
 
-      {/* Upload area */}
-      {!result && (
-        <div
-          onClick={() => !loading && fileInputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragOver(false);
-            const f = e.dataTransfer.files[0];
-            if (f) processFile(f);
-          }}
-          className="rounded-2xl p-16 text-center transition-all duration-300"
-          style={{
-            border: `2px dashed ${dragOver ? "#0D9488" : "rgba(13,148,136,0.35)"}`,
-            background: dragOver ? "rgba(13,148,136,0.08)" : "rgba(255,255,255,0.02)",
-            cursor: loading ? "wait" : "pointer",
-          }}
-        >
-          {loading ? (
-            <div className="flex flex-col items-center gap-4">
-              <Spinner />
-              <p style={{ color: "rgba(255,255,255,0.5)" }}>Analysing your question…</p>
+      {/* ── Idle / upload state ──────────────────────────────────────────────── */}
+      {!loading && !result && (
+        <>
+          {/* Instructions info card */}
+          <div
+            className="mb-6 px-5 py-4 rounded-xl"
+            style={{
+              background: "rgba(13,148,136,0.06)",
+              border: "1px solid rgba(13,148,136,0.2)",
+              borderLeft: "3px solid #0D9488",
+            }}
+          >
+            <p className="text-sm font-semibold mb-2" style={{ color: "#0D9488" }}>
+              For best results
+            </p>
+            <ul className="text-sm space-y-1.5" style={{ color: "rgba(255,255,255,0.6)" }}>
+              <li>• Upload a digital screenshot or PDF of your question rather than a photo of handwritten work</li>
+              <li>• Make sure the question text is clearly visible and not cut off</li>
+              <li>• Supported formats: JPG, PNG and PDF</li>
+            </ul>
+          </div>
+
+          {/* Retry hint (shown after clicking "No — try again") */}
+          {retryMessage && (
+            <div
+              className="mb-5 px-5 py-4 rounded-xl"
+              style={{ background: "rgba(245,158,11,0.07)", border: "1px solid rgba(245,158,11,0.2)" }}
+            >
+              <p className="text-sm" style={{ color: "rgba(245,158,11,0.85)" }}>
+                {retryMessage}
+              </p>
             </div>
-          ) : preview ? (
-            <div className="flex flex-col items-center gap-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={preview} alt="Preview" className="max-h-48 rounded-xl object-contain" />
-              <p className="text-sm" style={{ color: "rgba(255,255,255,0.4)" }}>Processing…</p>
+          )}
+
+          {/* Quality error (unreadable image) */}
+          {qualityError && (
+            <div
+              className="mb-5 px-5 py-4 rounded-xl"
+              style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}
+            >
+              <p className="text-sm font-semibold mb-1" style={{ color: "#f59e0b" }}>
+                ⚠ We could not read your question clearly
+              </p>
+              <p className="text-sm mb-3" style={{ color: "rgba(245,158,11,0.75)" }}>
+                {qualityError} Try a digital screenshot for best results.
+              </p>
+              <button
+                onClick={() => setQualityError(null)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg"
+                style={{
+                  background: "rgba(245,158,11,0.15)",
+                  color: "#f59e0b",
+                  border: "1px solid rgba(245,158,11,0.3)",
+                  cursor: "pointer",
+                }}
+              >
+                Try Again
+              </button>
             </div>
-          ) : (
+          )}
+
+          {/* Drop zone */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const f = e.dataTransfer.files[0];
+              if (f) processFile(f);
+            }}
+            className="rounded-2xl p-16 text-center transition-all duration-300"
+            style={{
+              border: `2px dashed ${dragOver ? "#0D9488" : "rgba(13,148,136,0.35)"}`,
+              background: dragOver ? "rgba(13,148,136,0.08)" : "rgba(255,255,255,0.02)",
+              cursor: "pointer",
+            }}
+          >
             <div className="flex flex-col items-center gap-4">
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
                 <rect x="8" y="14" width="32" height="24" rx="6" stroke="rgba(13,148,136,0.5)" strokeWidth="2" fill="rgba(13,148,136,0.06)" />
@@ -1367,36 +1585,107 @@ function UploadStage({
                 </p>
               </div>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }}
+            />
+          </div>
+
+          {/* General error */}
+          {error && (
+            <div
+              className="mt-6 px-6 py-4 rounded-xl"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}
+            >
+              <p className="text-red-400 text-sm">{error}</p>
+              <button
+                onClick={() => reset()}
+                className="text-xs mt-2 underline"
+                style={{ color: "rgba(239,68,68,0.7)", background: "none", border: "none", cursor: "pointer" }}
+              >
+                Try another image
+              </button>
+            </div>
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf"
-            className="hidden"
-            onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }}
-          />
-        </div>
+        </>
       )}
 
-      {error && (
+      {/* ── Loading progress indicator ───────────────────────────────────────── */}
+      {loading && (
         <div
-          className="mt-6 px-6 py-4 rounded-xl"
-          style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.25)" }}
+          className="rounded-2xl p-10"
+          style={{ background: "#1A2744", border: "1px solid rgba(13,148,136,0.2)" }}
         >
-          <p className="text-red-400 text-sm">{error}</p>
-          <button onClick={reset} className="text-xs mt-2 underline" style={{ color: "rgba(239,68,68,0.7)", background: "none", border: "none", cursor: "pointer" }}>
-            Try another image
-          </button>
+          {preview && (
+            <div className="mb-8 flex justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={preview} alt="Preview" className="max-h-36 rounded-xl object-contain" style={{ opacity: 0.65 }} />
+            </div>
+          )}
+          <div className="space-y-5 max-w-xs mx-auto">
+            {PROGRESS_STAGES.map((label, i) => {
+              const done   = i < progressStep;
+              const active = i === progressStep;
+              return (
+                <div key={i} className="flex items-center gap-4">
+                  {/* Step circle */}
+                  <div
+                    className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{
+                      background: done
+                        ? "#0D9488"
+                        : active
+                        ? "rgba(13,148,136,0.12)"
+                        : "rgba(255,255,255,0.04)",
+                      border: done
+                        ? "none"
+                        : active
+                        ? "2px solid #0D9488"
+                        : "2px solid rgba(255,255,255,0.1)",
+                      transition: "all 0.4s ease",
+                    }}
+                  >
+                    {done ? (
+                      <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                        <path d="M2.5 6.5l2.8 2.8 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : active ? (
+                      <span
+                        className="w-2.5 h-2.5 rounded-full animate-pulse"
+                        style={{ background: "#0D9488" }}
+                      />
+                    ) : null}
+                  </div>
+                  {/* Label */}
+                  <span
+                    className="text-sm font-medium"
+                    style={{
+                      color: done ? "rgba(255,255,255,0.4)" : active ? "#ffffff" : "rgba(255,255,255,0.2)",
+                      transition: "color 0.4s ease",
+                    }}
+                  >
+                    {label}
+                    {active && (
+                      <span className="ml-1 animate-pulse" style={{ color: "#0D9488" }}>…</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Result card */}
+      {/* ── Result card ──────────────────────────────────────────────────────── */}
       {result && (
         <div
           className="animate-slide-up rounded-2xl overflow-hidden shadow-2xl"
           style={{ background: "#1A2744", border: "1px solid rgba(13,148,136,0.35)" }}
         >
-          {/* Header */}
+          {/* Header — question identified */}
           <div className="px-8 py-6" style={{ background: "rgba(13,148,136,0.1)", borderBottom: "1px solid rgba(13,148,136,0.15)" }}>
             <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#0D9488" }}>
               Question identified · {result.topic} · Grade {result.grade}
@@ -1405,6 +1694,58 @@ function UploadStage({
               <LatexText text={result.questionText} />
             </p>
           </div>
+
+          {/* Did we read it correctly? */}
+          {questionConfirmed === null && (
+            <div
+              className="px-8 py-5"
+              style={{ background: "rgba(255,255,255,0.02)", borderBottom: "1px solid rgba(255,255,255,0.07)" }}
+            >
+              <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+                Did we read your question correctly?
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setQuestionConfirmed(true)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300"
+                  style={{ background: "#0D9488", color: "white", border: "none", cursor: "pointer" }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.85")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
+                >
+                  ✓ Yes, that&apos;s correct
+                </button>
+                <button
+                  onClick={() =>
+                    reset(
+                      "The question wasn't read correctly — try uploading a digital screenshot with the full question clearly visible and nothing cut off."
+                    )
+                  }
+                  className="px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    color: "rgba(255,255,255,0.6)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.1)")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)")}
+                >
+                  No — try again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {questionConfirmed === true && (
+            <div
+              className="px-8 py-3"
+              style={{ background: "rgba(13,148,136,0.06)", borderBottom: "1px solid rgba(13,148,136,0.12)" }}
+            >
+              <p className="text-xs font-medium" style={{ color: "rgba(13,148,136,0.75)" }}>
+                ✓ Question confirmed
+              </p>
+            </div>
+          )}
 
           {/* Worked solution */}
           <div className="px-8 py-6" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
@@ -1465,7 +1806,7 @@ function UploadStage({
               Try Similar Questions →
             </button>
             <button
-              onClick={reset}
+              onClick={() => reset()}
               className="flex-1 rounded-2xl py-4 font-bold text-base text-white transition-all duration-300"
               style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer" }}
               onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.11)")}

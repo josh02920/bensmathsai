@@ -4,7 +4,7 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 interface GenerateQuestionRequest {
   topic: string;
-  level: "foundation" | "higher";
+  grade: number;
   lessonNotes?: string;
 }
 
@@ -13,6 +13,17 @@ interface GenerateQuestionResponse {
   answer: string;
   working: string;
   topic: string;
+}
+
+/** Returns a grade-band-specific content instruction for Claude. */
+function gradeInstruction(grade: number): string {
+  if (grade <= 3) {
+    return "CONTENT LEVEL — FOUNDATION: Use simple whole numbers only. Single-step problem. Basic everyday vocabulary, no complex notation. Accessible to a student new to the topic.";
+  }
+  if (grade <= 6) {
+    return "CONTENT LEVEL — INTERMEDIATE: Use decimals and negative numbers. Two-to-three-step problem. Formal mathematical language and standard GCSE notation.";
+  }
+  return "CONTENT LEVEL — HIGHER: Use complex notation and algebra fluently. Multi-step problem requiring multiple techniques. Exam-style question wording. May specify non-calculator or calculator context.";
 }
 
 export async function POST(request: Request) {
@@ -24,17 +35,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { topic, level, lessonNotes } = body;
+  const { topic, grade, lessonNotes } = body;
 
   if (!topic || typeof topic !== "string") {
     return Response.json({ error: "topic is required and must be a string" }, { status: 400 });
   }
 
-  if (level !== "foundation" && level !== "higher") {
-    return Response.json(
-      { error: "level must be either 'foundation' or 'higher'" },
-      { status: 400 }
-    );
+  if (typeof grade !== "number" || !Number.isInteger(grade) || grade < 1 || grade > 9) {
+    return Response.json({ error: "grade must be an integer between 1 and 9" }, { status: 400 });
   }
 
   const tutorNotesSection =
@@ -42,11 +50,12 @@ export async function POST(request: Request) {
       ? `\nThe tutor has noted the following about this student's recent lesson: ${lessonNotes.trim()}\nPlease prioritise generating questions that address these specific areas of difficulty while staying within the chosen topic.\n`
       : "";
 
-  const prompt = `Generate a single GCSE maths question for the topic "${topic}" at ${level} tier level.
+  const prompt = `Generate a single GCSE maths question for the topic "${topic}" at Grade ${grade}.
+${gradeInstruction(grade)}
 ${tutorNotesSection}
 Requirements:
 - The question must be clearly solvable and have exactly one clean numerical or algebraic answer
-- Difficulty should be appropriate for GCSE ${level} tier
+- Difficulty must match Grade ${grade} precisely
 - Format all mathematical expressions using LaTeX notation wrapped in dollar signs (e.g. $x^2 + 3x - 4 = 0$, $\\frac{3}{4}$)
 
 Respond with valid JSON only, using exactly this structure:
